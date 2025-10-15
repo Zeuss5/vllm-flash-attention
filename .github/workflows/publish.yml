@@ -1,11 +1,8 @@
 # This workflow will:
-# - Create a new Github release
-# - Build wheels for supported architectures
-# - Deploy the wheels to the Github release
-# - Release the static code to PyPi
-# For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
+# - Build wheels for supported architectures with softcap enabled
+# - Upload wheels as artifacts for download
 
-name: Build wheels and deploy
+name: Build FlashAttention with Softcap
 
 on:
   workflow_dispatch:
@@ -14,25 +11,6 @@ on:
       - v*
 
 jobs:
-
-  setup_release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Get the tag version
-        id: extract_branch
-        run: echo ::set-output name=branch::${GITHUB_REF#refs/tags/}
-        shell: bash
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.extract_branch.outputs.branch }}
-          release_name: ${{ steps.extract_branch.outputs.branch }}
-
   build_wheels:
     name: Build Wheel
     runs-on: ${{ matrix.os }}
@@ -160,25 +138,9 @@ jobs:
         run: |
           ls dist
 
-      - name: Get the tag version
-        id: extract_branch
-        run: echo ::set-output name=branch::${GITHUB_REF#refs/tags/}
-
-      - name: Get Release with tag
-        id: get_current_release
-        uses: joutvhu/get-release@v1
+      - name: Upload wheel as artifact
+        uses: actions/upload-artifact@v3
         with:
-          tag_name: ${{ steps.extract_branch.outputs.branch }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Release Asset
-        id: upload_release_asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.get_current_release.outputs.upload_url }}
-          asset_path: ./dist/${{env.wheel_name}}
-          asset_name: ${{env.wheel_name}}
-          asset_content_type: application/*
+          name: flash-attn-softcap-wheels
+          path: dist/${{ env.wheel_name }}
+          retention-days: 30
